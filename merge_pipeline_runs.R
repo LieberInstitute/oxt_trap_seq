@@ -60,6 +60,7 @@ metrics = rbind(metrics_solo,
 	metrics_clone[,names(metrics_solo)])
 pd = cbind(pd, metrics[pd$SampleID,-1])
 pd$ReadType = rep(c("Single","Paired"), c(6,12))
+rownames(pd) = pd$SampleID
 
 ## gene
 geneCounts = cbind(geneCounts_solo, geneCounts_ovation,
@@ -73,6 +74,7 @@ exonCounts = exonCounts[,pd$SampleID]
 
 ## transcripts
 txTpm = cbind(txTpm_solo, txTpm_ovation, txTpm_clone)
+txTpm = txTpm[,pd$SampleID]
 
 ## junction
 jMap_clone$meanExprs = jMap_ovation$meanExprs = jMap_solo$meanExprs = NULL 
@@ -84,12 +86,7 @@ jCounts = cbind(jCounts_solo[match(names(jMap),names(jMap_solo)),],
 rownames(jCounts) = names(jMap)
 jCounts[is.na(jCounts)] = 0
 colnames(jCounts) = gsub(".", "-", colnames(jCounts), fixed=TRUE)
-
-### match order ####
-geneCounts = geneCounts[,rownames(metrics)]
-exonCounts = exonCounts[,rownames(metrics)]
-jCounts = jCounts[,rownames(metrics)]
-txTpm = txTpm[,rownames(metrics)]
+jCounts = jCounts[,pd$SampleID]
 
 #########################################
 ####### export merged rse objects #######
@@ -103,7 +100,7 @@ mcols(gr_genes) <- DataFrame(geneMap[, - which(colnames(geneMap) %in%
     c('Chr', 'Start', 'End', 'Strand'))])
 
 rse_gene <- SummarizedExperiment(assays = list('counts' = geneCounts),
-    rowRanges = gr_genes, colData = metrics)
+    rowRanges = gr_genes, colData = pd)
 
 ## exon
 gr_exons <- GRanges(seqnames = exonMap$Chr,
@@ -113,13 +110,13 @@ mcols(gr_exons) <- DataFrame(exonMap[, - which(colnames(exonMap) %in%
     c('Chr', 'Start', 'End', 'Strand'))])
 
 rse_exon <- SummarizedExperiment(assays = list('counts' = exonCounts),
-    rowRanges = gr_exons, colData = metrics)
+    rowRanges = gr_exons, colData = pd)
 
 ## jxn
 jIndex = which(rowSums(jCounts > 0) > 2)
 rse_jx <- SummarizedExperiment(
 	assays = list('counts' = jCounts[jIndex,]),
-    rowRanges = jMap[jIndex,], colData = metrics)
+    rowRanges = jMap[jIndex,], colData = pd)
 
 ## tx
 txMap_coord = geneMap[txMap$gencodeID,]
@@ -130,7 +127,7 @@ names(gr_txs) <- rownames(txMap)
 mcols(gr_txs) <- DataFrame(txMap)
 
 rse_tx <- SummarizedExperiment(assays = list('tpm' = txTpm),
-    rowRanges = gr_txs, colData = metrics)
+    rowRanges = gr_txs, colData = pd)
 
 save(rse_gene, rse_exon, rse_jx, rse_tx,
 	file = "rseObjs_oxtMerge_n18_4features.Rdata")

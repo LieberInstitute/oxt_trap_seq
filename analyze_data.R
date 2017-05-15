@@ -9,12 +9,13 @@ library(SummarizedExperiment) # for RSEs
 library(recount) # for getRPKM()
 library(clusterProfiler) # gene set tests
 library(org.Mm.eg.db) # gene set test annotation
+library(RColorBrewer) # for plotting
 
 ## load in data
 load("rseObjs_oxtMerge_n18_4features.Rdata")
 
-## filter lowly exprssed genes by RPKM overall
-geneIndex = rowMeans(getRPKM(rse_gene, "Length")) > 0.1
+## filter lowly exprssed genes by RPKM in ovation
+geneIndex = rowMeans(getRPKM(rse_gene[,rse_gene$Kit=="Ovation"], "Length")) > 0.1
 rse_gene = rse_gene[geneIndex,]
 
 ## pca
@@ -54,16 +55,18 @@ sigGene_ovation = outGene_ovation[outGene_ovation$adj.P.Val < 0.01,]
 ## plots #######
 
 ## ma-plot
+par(mfrow = c(1,2))
+palette(brewer.pal(5, "Dark2"))
 plot(logFC ~ AveExpr, pch = 21, bg=sigColor, 
-	data = outGene_ovation)
+	data = outGene_ovation,ylab="IP vs Input log2FC")
 	
 ## volanco plot
 plot(-log10(P.Value) ~ logFC, pch = 21, bg=sigColor, 
-	data = outGene_ovation)
+	data = outGene_ovation, xlab = "IP vs Input log2FC")
 	
 ################
 ## gene set ####
-sigGene_ = split(sigGene_ovation$EntrezID,
+sigGeneList_ovation = split(sigGene_ovation$EntrezID,
 	sign(sigGene_ovation$logFC))
 sigGeneList_ovation = lapply(sigGeneList_ovation, 
 			function(x) x[!is.na(x)])
@@ -85,7 +88,13 @@ goCC_ovation <- enrichGO(gene = as.character(sigGeneList_ovation[["1"]]),
                 ont = "CC", pAdjustMethod = "BH",
                 pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
 				readable= TRUE)
-			
+
+goOut = data.frame(BioProc = goBP_ovation$Description[1:15],
+	MolFunc = goMF_ovation$Description[1:15],
+	CellComp = goCC_ovation$Description[1:15],
+	stringsAsFactors=FALSE)
+goOut
+
 ###########################
 ## replication with solo ##
 rse_gene_solo = rse_gene[,rse_gene$Kit == "SoLo"]
@@ -118,13 +127,20 @@ outGene_solo = topTable(eBGene_solo,coef=2,
 replicationStats = outGene_solo[rownames(sigGene_ovation),]
 replicationStats$sameDir = sign(replicationStats$logFC) == 
 	sign(sigGene_ovation$logFC)
+	
+## check proportions
+prop.table(table(replicationStats$sameDir))
 prop.table(table(replicationStats$sameDir &
 	replicationStats$P.Value < 0.05))
 	
 ## plots
-plot(sigGene_ovation$logFC, replicationStats$logFC,
+plot(sigGene_ovation$logFC, replicationStats$logFC,bg=2, pch=21,
 	xlab = "Ovation", ylab = "SoLo", main = "log2 Fold Changes")
-plot(sigGene_ovation$t, replicationStats$t)
+abline(h=0,v=0,lty=2)
+plot(sigGene_ovation$t, replicationStats$t,bg=2, pch=21,
+	xlab = "Ovation", ylab = "SoLo", main = "T-statistics")
+abline(h=0,v=0,lty=2)
+
 
 ####################################3
 ### CST comparison to ribo null? ####
@@ -156,13 +172,24 @@ outGene_clone = topTable(eBGene_clone,coef=2,
 compareStats = outGene_clone[rownames(sigGene_ovation),]
 compareStats$sameDir = sign(compareStats$logFC) == 
 	sign(sigGene_ovation$logFC)
+
+prop.table(table(compareStats$sameDir))
 prop.table(table(compareStats$sameDir &
-	compareStats$P.Value < 0.01))
+	compareStats$P.Value < 0.05))
 	
 ## plots
-plot(sigGene_ovation$logFC, compareStats$logFC,
-	xlab = "Ovation", ylab = "SoLo", main = "log2 Fold Changes")
-plot(sigGene_ovation$t, compareStats$t)
+
+plot(sigGene_ovation$logFC, compareStats$logFC,bg=2, pch=21,
+	xlab = "Ovation", ylab = "Clonetech", main = "log2 Fold Changes")
+abline(h=0,v=0,lty=2)
+
+plot(sigGene_ovation$t, compareStats$t,bg=2, pch=21,
+	xlab = "Ovation", ylab = "Clonetech", main = "T-statistics")
+abline(h=0,v=0,lty=2)
+abline(h=10,lty=3)
+
+compareStats$Symbol[compareStats$t > 10]
+
 
 ## check GO again
 cleanGene = sigGene_ovation$EntrezID[sigGene_ovation$logFC > 0 &

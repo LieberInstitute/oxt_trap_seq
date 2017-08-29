@@ -10,7 +10,7 @@ library(recount) # for getRPKM()
 library(clusterProfiler) # gene set tests
 library(org.Mm.eg.db) # gene set test annotation
 library(RColorBrewer) # for plotting
-
+library(TeachingDemos) # for shadow text
 ## load in data
 load("rseObjs_oxtMerge_n18_4features.Rdata")
 
@@ -54,7 +54,9 @@ sigGene_ovation = outGene_ovation[outGene_ovation$adj.P.Val < 0.01,]
 dim(sigGene_ovation)
 
 save(outGene_ovation, file= "TRAP_discovery_differential_expression.rda")
-
+statsOut = outGene_ovation[,c(2,5, 8,10:13,3,1,4,6,9)]
+write.csv(statsOut, file = gzfile("tables/TRAP_discovery_differential_expression.csv.gz"),
+	row.names=FALSE)
 ## FDR < 1% leads to better replication w/ solo, 95% versus 80%
 
 ################
@@ -66,17 +68,23 @@ plot(logFC ~ AveExpr, pch = 21, bg=sigColor,
 	data = outGene_ovation,ylab="IP vs Input log2FC")
 	
 ## volanco plot
-pdf("plots/figure4c_volcano_plot_trapSeq.pdf")
+g = c("Oxt", "Agrp", "Cartpt", "Pmch")
+m = match(g, outGene_ovation$Symbol)
+
+pdf("plots/figure4c_volcano_plot_trapSeq.pdf",useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
 par(mar = c(5,6,2,2), cex.axis=2,cex.lab=2)
 plot(-log10(P.Value) ~ logFC, pch = 21, bg=sigColor, 
 	data = outGene_ovation, xlab = "IP vs Input log2FC")
+shadowtext(outGene_ovation$logFC[m], -log10(outGene_ovation$P.Value[m]),
+	letters[21:24],font=2,cex=2,col="grey")
 abline(v=c(-1,1), lty=2,lwd=2)
 dev.off()
 
 ## genes to talk about in text
-outGene_ovation[match(c("Oxt", "Agrp", "Cartpt", "Pmch"), outGene_ovation$Symbol),]
-2^outGene_ovation$logFC[match(c("Oxt", "Agrp", "Cartpt", "Pmch"), outGene_ovation$Symbol)]
-1/2^outGene_ovation$logFC[match(c("Oxt", "Agrp", "Cartpt", "Pmch"), outGene_ovation$Symbol)]
+outGene_ovation[m,]
+2^outGene_ovation$logFC[m]
+1/2^outGene_ovation$logFC[m]
 
 ################
 ## gene set ####
@@ -103,18 +111,30 @@ goCC <- compareCluster(sigGeneList_ovation, fun = "enrichGO",
                 pvalueCutoff  = 0.1, qvalueCutoff  = 0.05,
 				readable= TRUE)
 
+
 ## write out				
 goBP_DF = as.data.frame(goBP)
 goMF_DF = as.data.frame(goMF)
 goCC_DF = as.data.frame(goCC)
 
 goOut = rbind(goBP_DF, goMF_DF, goCC_DF)
+goOut = goOut[goOut$p.adjust < 0.01,]
 goOut$Ontology = rep(c("BP", "MF", "CC"), 
 	times = c(nrow(goBP), nrow(goMF), nrow(goCC)))
 colnames(goOut)[1] = "Direction"
 goOut = goOut[order(goOut$p.adjust),]
 goOut[which(goOut$Direction == "1")[1:10],]
 write.csv(goOut, file = "tables/trap_GO_analysis_DE_FDR01.csv",row.names=FALSE)
+
+## plots
+plotExample = goMF
+#### GET EXAMPLES FROM KRISTEN
+setsToPlot = c()
+tmp@compareClusterResult = tmp@compareClusterResult[50:60,]
+pdf("plots/geneset.pdf")
+plot(tmp)
+dev.off()
+
 
 ###########################
 ## replication with solo ##
@@ -155,12 +175,18 @@ prop.table(table(replicationStats$sameDir &
 	replicationStats$P.Value < 0.05))
 	
 ## plots
+pdf("plots/suppFigure_ovation_versus_solo_replication.pdf",useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
+par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
 plot(sigGene_ovation$logFC, replicationStats$logFC,bg=2, pch=21,
-	xlab = "Ovation", ylab = "SoLo", main = "log2 Fold Changes")
+	xlab = "Ovation (Discovery)", ylab = "SoLo (Replication)", 
+	main = "log2 Fold Changes") # i can change labels
 abline(h=0,v=0,lty=2)
 plot(sigGene_ovation$t, replicationStats$t,bg=2, pch=21,
-	xlab = "Ovation", ylab = "SoLo", main = "T-statistics")
+	xlab = "Ovation (Discovery)", ylab = "SoLo (Replication)", 
+	main = "T-statistics")
 abline(h=0,v=0,lty=2)
+dev.off()
 
 
 ####################################3
@@ -194,6 +220,21 @@ compareStatsClone = outGene_clone[rownames(sigGene_ovation),]
 compareStatsClone$sameDir = sign(compareStatsClone$logFC) == 
 	sign(sigGene_ovation$logFC)
 
+## plots
+pdf("plots/suppFigure_oxt_versus_cst.pdf",useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
+par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
+plot(sigGene_ovation$logFC, compareStatsClone$logFC,bg=2, pch=21,
+	xlab = "Oxt (Discovery)", ylab = "CST (Replication)", 
+	main = "log2 Fold Changes") # i can change labels
+abline(h=0,v=0,lty=2)
+plot(sigGene_ovation$t, compareStatsClone$t,bg=2, pch=21,
+	xlab = "Oxt (Discovery)", ylab = "CST", 
+	main = "T-statistics")
+abline(h=0,v=0,lty=2)
+dev.off()
+
+
 	
 ###################################
 #### other TRAP data ##############
@@ -216,33 +257,34 @@ outGene_trap = topTable(eBGene_trap,coef=2,
 	p.value = 1,number=nrow(rse_gene_trap))
 compareStatsTrap = outGene_trap[rownames(sigGene_ovation),]
 
-###################
-# compare plots ###
-###################
 
-prop.table(table(compareStatsClone$sameDir))
-prop.table(table(compareStatsClone$sameDir &
-	compareStatsClone$P.Value < 0.05))
-	
-## Cst
-plot(sigGene_ovation$logFC, compareStatsClone$logFC,bg=2, pch=21,
-	xlab = "Oxt", ylab = "Cst", main = "log2 Fold Changes")
-abline(h=0,v=0,lty=2)
-
-plot(sigGene_ovation$t, compareStatsClone$t,bg=2, pch=21,
-	xlab = "Oxt", ylab = "Cst", main = "T-statistics")
-abline(h=0,v=0,lty=2)
-abline(h=10,lty=3)
-
-## retina
+## plots
+pdf("plots/suppFigure_oxt_versus_ntsr1.pdf",useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
+par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
 plot(sigGene_ovation$logFC, compareStatsTrap$logFC,bg=2, pch=21,
-	xlab = "Oxt vs Input", ylab = "Ntsr1 vs Input", main = "log2 Fold Changes")
+	xlab = "Oxt (Discovery)", ylab = "Ntsr1", 
+	main = "log2 Fold Changes") # i can change labels
 abline(h=0,v=0,lty=2)
-
 plot(sigGene_ovation$t, compareStatsTrap$t,bg=2, pch=21,
-	xlab = "Oxt vs Input", ylab = "Ntsr1 vs Input", main = "T-statistics")
+	xlab = "Oxt (Discovery)", ylab = "Ntsr1", 
+	main = "T-statistics")
 abline(h=0,v=0,lty=2)
-abline(h=10,lty=3)
+dev.off()
+
+pdf("plots/suppFigure_cst_versus_ntsr1_onlyOxtGenes.pdf",
+	useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
+par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
+plot(compareStatsClone$logFC, compareStatsTrap$logFC,bg=2, pch=21,
+	xlab = "Cst", ylab = "Ntsr1", 
+	main = "log2 Fold Changes") # i can change labels
+abline(h=0,v=0,lty=2)
+plot(compareStatsClone$t, compareStatsTrap$t,bg=2, pch=21,
+	xlab = "Cst", ylab = "Ntsr1", 
+	main = "T-statistics")
+abline(h=0,v=0,lty=2)
+dev.off()
 
 ##### write output ######
 sigGene_ovation$t_SoLo = replicationStats$t
@@ -272,27 +314,3 @@ outStats$coord_mm10 = paste0(outStats$chr_mm10, ":",
 outStats = outStats[,c(2, 5, 8:13, 28, 1, 3:4, 6, 14:22, 27)]
 write.csv(outStats, file= "tables/TRAP_stats_allTests.csv", row.names=FALSE)
 
- 	write.csv(sigGene_ovation, file = 
-compareStatsClone$Symbol[compareStatsClone$t > 10]
-
-
-## check GO again
-cleanGene = sigGene_ovation$EntrezID[sigGene_ovation$logFC > 0 &
-	!(compareStats$sameDir & compareStats$P < 0.05)]
-cleanGene = as.character(cleanGene[!is.na(cleanGene)])
-
-goBP_clean <- enrichGO(gene = cleanGene,
-                universe = geneUniverse, OrgDb = org.Mm.eg.db,
-                ont = "BP", pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
-				readable= TRUE)
-goMF_clean <- enrichGO(gene = cleanGene,
-                universe = geneUniverse, OrgDb = org.Mm.eg.db,
-                ont = "MF", pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
-				readable= TRUE)
-goCC_clean <- enrichGO(gene = cleanGene,
-                universe = geneUniverse, OrgDb = org.Mm.eg.db,
-                ont = "CC", pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
-				readable= TRUE)

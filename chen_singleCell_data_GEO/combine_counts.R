@@ -1,10 +1,11 @@
 
 library(jaffelab)
+library(parallel)
 
 # read in data
 fn = list.files("geo_data", full.names=TRUE)
 names(fn) = ss(list.files("geo_data"), "_")
-datList = lapply(fn, read.delim, row.names=1)
+datList = mclapply(fn, read.delim, row.names=1,mc.cores=6)
 
 ## fix column names
 for(i in seq(along=datList)) colnames(datList[[i]]) = paste0(

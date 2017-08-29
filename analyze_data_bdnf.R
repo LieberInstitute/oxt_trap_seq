@@ -54,7 +54,7 @@ ebGene = ebayes(fitGene)
 eBGene = eBayes(fitGene)
 outGene = topTable(eBGene,coef=2,
 	p.value = 1,number=nrow(rse_gene))
-outGene$sigColor = as.numeric(outGene$adj.P.Val < 0.01)+1
+outGene$sigColor = as.numeric(outGene$adj.P.Val < 0.1)+1
 sigGene = outGene[outGene$adj.P.Val < 0.1,]
 write.csv(sigGene[,-1], "tables/bdnf_genotype_effect_fdr10.csv",
 	row.names=FALSE)
@@ -85,10 +85,18 @@ palette(brewer.pal(5, "Dark2"))
 plot(logFC ~ AveExpr, pch = 21, bg=sigColor, 
 	data = outGene,ylab="IP vs Input log2FC")
 	
-## volanco plot
+## volanco plot, thresholded 
+outGeneThresh = outGene
+outGeneThresh$P.Value[outGeneThresh$P.Value < 2.2e-16] = 2.2e-16
+outGeneThresh$sigColor[outGeneThresh$sigColor==2] = 3
+
+pdf("plots/figure5c_volcano_plot_bdnfEffect.pdf",useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
+par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
 plot(-log10(P.Value) ~ logFC, pch = 21, bg=sigColor, 
-	data = outGene, xlab = "IP vs Input log2FC")
-	
+	data = outGeneThresh, xlab = "BDNF Mut vs WT log2FC")
+dev.off()
+
 ################
 ## gene set ####
 sigGene_marginal = outGene[outGene$P.Value < 0.005,]
@@ -102,45 +110,47 @@ geneUniverse = geneUniverse[!is.na(geneUniverse)]
 goBP <- compareCluster(sigGeneList, fun = "enrichGO",
                 universe = geneUniverse, OrgDb = org.Mm.eg.db,
                 ont = "BP", pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
+                pvalueCutoff  = 0.1, qvalueCutoff  = 0.05,
 				readable= TRUE)
 goMF <- compareCluster(sigGeneList, fun = "enrichGO",
                 universe = geneUniverse, OrgDb = org.Mm.eg.db,
                 ont = "MF", pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
+                pvalueCutoff  = 0.1, qvalueCutoff  = 0.05,
 				readable= TRUE)		
 goCC <- compareCluster(sigGeneList, fun = "enrichGO",
                 universe = geneUniverse, OrgDb = org.Mm.eg.db,
                 ont = "CC", pAdjustMethod = "BH",
-                pvalueCutoff  = 0.01, qvalueCutoff  = 0.05,
+                pvalueCutoff  = 0.1, qvalueCutoff  = 0.05,
 				readable= TRUE)
 
 ## write out				
 goBP_DF = as.data.frame(goBP)
-goBP_DF$Ontology = "BP"
 goMF_DF = as.data.frame(goMF)
-goMF_DF$Ontology = "MF"
 goCC_DF = as.data.frame(goCC)
-goCC_DF$Ontology = "CC"
 
 goOut = rbind(goBP_DF, goMF_DF, goCC_DF)
+goOut$Ontology = rep(c("BP", "MF", "CC"), 
+	times = c(nrow(goBP), nrow(goMF), nrow(goCC)))
+goOut = goOut[goOut$p.adjust < 0.05,]
 colnames(goOut)[1] = "Direction"
-goOut = data.frame(BioProc = goBP$Description[1:15],
-	MolFunc = goMF$Description[1:15],
-	CellComp = goCC$Description[1:15],
-	stringsAsFactors=FALSE)
-goOut
+goOut = goOut[order(goOut$p.adjust),]
+write.csv(goOut, file = "tables/GO_bdnf_enrichment_DE_at_p005.csv",row.names=FALSE)
 
 ##############################
 ## compare to trap inputs ####
+outGene_ovation = read.csv("/dcl01/lieber/ajaffe/lab/oxt_trap_seq/tables/TRAP_discovery_differential_expression.csv.gz",
+	row.names=1)
 outGene_ovation = outGene_ovation[match(rownames(outGene), rownames(outGene_ovation)),]
-plot(outGene$t, outGene_ovation$t)
+
+pdf("plots/suppFigure_Bdnf_versus_IP_effects.pdf",useDingbats=FALSE)
+palette(brewer.pal(5, "Dark2"))
+par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
 plot(outGene$logFC, outGene_ovation$logFC,
-	xlab = "BDNF Effect", ylab = "IP vs Input Effect",
+	xlab = "BDNF Effect", ylab = "Oxt IP vs Input Effect",
 	main = "log2FC",pch=21,bg="grey")
-	
-plot(outGene0$t, outGene_ovation$t)
-plot(outGene0$logFC, outGene_ovation$logFC,
-	xlab = "BDNF Effect", ylab = "IP vs Input Effect",
-	main = "log2FC",pch=21,bg="grey")
-	
+plot(outGene$t, outGene_ovation$t,
+	xlab = "BDNF Effect", ylab = "Oxt IP vs Input Effect",
+	main = "T-statistics",pch=21,bg="grey")
+dev.off()
+
+

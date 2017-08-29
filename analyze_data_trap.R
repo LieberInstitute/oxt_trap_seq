@@ -118,9 +118,9 @@ goMF_DF = as.data.frame(goMF)
 goCC_DF = as.data.frame(goCC)
 
 goOut = rbind(goBP_DF, goMF_DF, goCC_DF)
-goOut = goOut[goOut$p.adjust < 0.01,]
 goOut$Ontology = rep(c("BP", "MF", "CC"), 
 	times = c(nrow(goBP), nrow(goMF), nrow(goCC)))
+goOut = goOut[goOut$p.adjust < 0.01,]
 colnames(goOut)[1] = "Direction"
 goOut = goOut[order(goOut$p.adjust),]
 goOut[which(goOut$Direction == "1")[1:10],]

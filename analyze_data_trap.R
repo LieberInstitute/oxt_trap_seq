@@ -132,17 +132,22 @@ setsToPlot = c("GO:0043209", "GO:0044455", "GO:0042063",
 	"GO:0010001", "	GO:0048709",
 	"GO:0003779", "GO:0005516","GO:0098794",
 	"GO:0030424", "GO:0000226")
+	
 goUp = goOut[goOut$Direction == 1,]
 goUp = goUp[match(setsToPlot[6:10], goUp$ID),]	
 goDown = goOut[goOut$Direction == -1,]
 goDown = goDown[match(setsToPlot[1:5], goDown$ID),]		
 goExample = rbind(goUp, goDown)
 
+goExample$qvalue[goExample$qvalue < 2.2e-16] = 2.2e-16
+
 pdf("plots/go_figure4_barplot.pdf",h=3,w=7)
-par(mar=c(5,18,2,2),cex.axis=1.2,cex.lab=1.5)
+par(mar=c(5,23,2,2),cex.axis=1.2,cex.lab=1.5)
 barplot(-log10(goExample$qvalue),width=0.5,
 	names = goExample$Description,horiz=TRUE,
 	xlab="-log10(FDR)",las=1)
+abline(h=3.05,lwd=1.5,lty=2)
+abline(v=-log10(0.05), col="blue")
 dev.off()
 ###########################
 ## replication with solo ##

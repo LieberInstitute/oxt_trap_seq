@@ -141,8 +141,8 @@ goExample = rbind(goUp, goDown)
 
 goExample$qvalue[goExample$qvalue < 2.2e-16] = 2.2e-16
 
-pdf("plots/go_figure4_barplot.pdf",h=3,w=7)
-par(mar=c(5,23,2,2),cex.axis=1.2,cex.lab=1.5)
+pdf("plots/go_figure4_barplot.pdf",h=3.5,w=7)
+par(mar=c(5,20,2,2),cex.axis=1.2,cex.lab=1.5)
 barplot(-log10(goExample$qvalue),width=0.5,
 	names = goExample$Description,horiz=TRUE,
 	xlab="-log10(FDR)",las=1)

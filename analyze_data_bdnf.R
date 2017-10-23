@@ -10,6 +10,7 @@ library(recount) # for getRPKM()
 library(clusterProfiler) # gene set tests
 library(org.Mm.eg.db) # gene set test annotation
 library(RColorBrewer) # for plotting
+library(TeachingDemos) # for shadow text
 
 ## load in data
 load("preprocessed_data/Bdnf_SoLo_Oxt/rse_gene_Bdnf_SoLo_Oxt_MiSeq_n6.Rdata")
@@ -90,11 +91,17 @@ outGeneThresh = outGene
 outGeneThresh$P.Value[outGeneThresh$P.Value < 2.2e-16] = 2.2e-16
 outGeneThresh$sigColor[outGeneThresh$sigColor==2] = 3
 
+# highlight genes
+g = c("Gabra2", "Cckar")
+m = match(g, outGeneThresh$Symbol)
+
 pdf("plots/figure5c_volcano_plot_bdnfEffect.pdf",useDingbats=FALSE)
 palette(brewer.pal(5, "Dark2"))
 par(mar = c(5,6,4,2), cex.axis=2,cex.lab=2,cex.main=2)
 plot(-log10(P.Value) ~ logFC, pch = 21, bg=sigColor, 
 	data = outGeneThresh, xlab = "BDNF Mut vs WT log2FC")
+shadowtext(outGeneThresh$logFC[m], -log10(outGeneThresh$P.Value[m]),
+	letters[16:17],font=2,cex=2,col="grey")
 dev.off()
 
 ################
@@ -136,6 +143,26 @@ colnames(goOut)[1] = "Direction"
 goOut = goOut[order(goOut$p.adjust),]
 write.csv(goOut, file = "tables/GO_bdnf_enrichment_DE_at_p005.csv",row.names=FALSE)
 
+## example GO plots
+setsToPlot = c("GO:0003954", "GO:0042773", "GO:0019199",
+		"GO:0007270", "GO:0050808", "GO:0021761",
+		"GO:0044708", "GO:0072562", "GO:0002021",
+		"GO:0005179")
+goUp = goOut[goOut$Direction == 1,]
+goUp = goUp[match(setsToPlot[1:5], goUp$ID),]	
+goDown = goOut[goOut$Direction == -1,]
+goDown = goDown[match(setsToPlot[6:10], goDown$ID),]		
+goExample = rbind(goUp, goDown)
+
+pdf("plots/go_figure5_barplot.pdf",h=4,w=8)
+par(mar=c(5,23,2,2),cex.axis=1.2,cex.lab=1.5)
+barplot(-log10(goExample$qvalue),width=0.5,
+	names = goExample$Description,horiz=TRUE,
+	xlab="-log10(FDR)",las=1)
+abline(h=3.05,lwd=1.5,lty=2)
+abline(v=-log10(0.05), col="blue")
+dev.off()
+		
 ##############################
 ## compare to trap inputs ####
 outGene_ovation = read.csv("/dcl01/lieber/ajaffe/lab/oxt_trap_seq/tables/TRAP_discovery_differential_expression.csv.gz",

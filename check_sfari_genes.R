@@ -10,7 +10,7 @@ library(jaffelab)
 library(biomaRt)
 library(WriteXLS)
 
-options(stringsAsFactors = F)
+options(stringsAsFactors = FALSE)
 
 
 ##################################
@@ -38,36 +38,49 @@ dim(sigGene) #1545 DEGs with human homolog
 
 ########################
 # load SFARI human genes
-humanSFARI = read.csv('/users/bphan/tcf4/PTHS_mouse/tcf4_mouse/tables/gene-score.csv')
+humanSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/gene-score.csv')
 humanSFARI = with(humanSFARI, humanSFARI[order(-grepl('S',Score),ss(Score,'S')),])
 humanSFARI = cbind(humanSFARI,outGene_ovation[lookfor(humanSFARI$Gene.Symbol,outGene_ovation$Symbol),])
 humanSFARI= humanSFARI[!is.na(humanSFARI$Symbol),]
 humanSFARI = humanSFARI[!duplicated(humanSFARI),]
-nrow(humanSFARI) # 558 expressed in mouse tcf4 dataset
+nrow(humanSFARI) # 558 expressed in mouse oxt dataset
 
 #########################
 # load SFARI mouse models
-mouseSFARI = read.csv('/users/bphan/tcf4/PTHS_mouse/tcf4_mouse/tables/sfari_genetic-animal-model-summary.csv')
+mouseSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/sfari_genetic-animal-model-summary.csv')
 mouseSFARI = with(mouseSFARI,mouseSFARI[Model.Species=='Mus musculus',])
 mouseSFARI = cbind(mouseSFARI,outGene_ovation[lookfor(mouseSFARI$Model.Gene.symbol,outGene_ovation$Symbol),])
 mouseSFARI= mouseSFARI[!is.na(mouseSFARI$Symbol),]
 mouseSFARI = mouseSFARI[order(match(mouseSFARI$Symbol,humanSFARI$Symbol)),]
 mouseSFARI = mouseSFARI[!duplicated(mouseSFARI),]
-nrow(mouseSFARI) # 176 expressed in mouse tcf4 dataset
+nrow(mouseSFARI) # 176 expressed in mouse oxt dataset
 
 ###########################
 # list of DEG in mouse SFARI
-# 53 genes differentially expressed and in SFARI 
-(t1 = with(outGene_ovation,table(inMouseSFARI = Symbol %in% mouseSFARI$Symbol,inDEG = adj.P.Val < 0.01)))
-fisher.test(t1) # OR = 1.85, p-value = 0.0039
+# 32 genes differentially expressed and in SFARI 
+outGene_ovation$inMouseSFARI = outGene_ovation$Symbol %in% mouseSFARI$Symbol
+(t1 = with(outGene_ovation,table(inMouseSFARI,inDEG = adj.P.Val < 0.01)))
+fisher.test(t1) # OR = 1.9, p-value = 0.0019
 ind1 = with(sigGene, which(mouseSFARI$Symbol %in% Symbol))
 
 #######################################
 # list of DEG in scored human SFARI list
 # 131 human SFARI ASD-linked genes in our list of DEGs
-(t2 = with(outGene_ovation,table(inHumanSFARI = Symbol %in% humanSFARI$Symbol,inDEG = adj.P.Val < 0.01)))
-fisher.test(t2) # OR = 2.22, p-value = 9.45e-12
+outGene_ovation$inHumanSFARI =  outGene_ovation$Symbol %in% humanSFARI$Symbol
+(t2 = with(outGene_ovation,table(inHumanSFARI,inDEG = adj.P.Val < 0.01)))
+fisher.test(t2) # OR = 2.24, p-value = 5.76e-12
 ind2 = with(sigGene, which(humanSFARI$Symbol %in% Symbol))
+
+## venn diagrams
+library(limma)
+vennCount = vennCounts(data.frame(DEG = outGene_ovation$adj.P.Val < 0.01,
+	`Hs SFARI` = outGene_ovation$inHumanSFARI,
+	`Mm SFARI`= outGene_ovation$inMouseSFARI))
+
+pdf("plots/vennDiagram_asd_oxt_enrichment.pdf")
+vennDiagram(vennCount,cex=1.4)
+dev.off()
+
 
 ####################
 # save the two lists
@@ -91,22 +104,22 @@ dim(sigGene) # 71 DEGs with human homolog
 
 ########################
 # load SFARI human genes
-humanSFARI = read.csv('/users/bphan/tcf4/PTHS_mouse/tcf4_mouse/tables/gene-score.csv')
+humanSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/gene-score.csv')
 humanSFARI = with(humanSFARI, humanSFARI[order(-grepl('S',Score),ss(Score,'S')),])
 humanSFARI = cbind(humanSFARI,bdnfStats[lookfor(humanSFARI$Gene.Symbol,bdnfStats$Symbol),])
 humanSFARI= humanSFARI[!is.na(humanSFARI$Symbol),]
 humanSFARI = humanSFARI[!duplicated(humanSFARI),]
-nrow(humanSFARI) # 556 expressed in mouse tcf4 dataset
+nrow(humanSFARI) # 556 expressed in mouse oxt dataset
 
 #########################
 # load SFARI mouse models
-mouseSFARI = read.csv('/users/bphan/tcf4/PTHS_mouse/tcf4_mouse/tables/sfari_genetic-animal-model-summary.csv')
+mouseSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/sfari_genetic-animal-model-summary.csv')
 mouseSFARI = with(mouseSFARI,mouseSFARI[Model.Species=='Mus musculus',])
 mouseSFARI = cbind(mouseSFARI,bdnfStats[lookfor(mouseSFARI$Model.Gene.symbol,bdnfStats$Symbol),])
 mouseSFARI= mouseSFARI[!is.na(mouseSFARI$Symbol),]
 mouseSFARI = mouseSFARI[order(match(mouseSFARI$Symbol,humanSFARI$Symbol)),]
 mouseSFARI = mouseSFARI[!duplicated(mouseSFARI),]
-nrow(mouseSFARI) # 179 expressed in mouse tcf4 dataset
+nrow(mouseSFARI) # 179 expressed in mouse oxt dataset
 
 ###########################
 # list of DEG in mouse SFARI

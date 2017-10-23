@@ -127,15 +127,17 @@ goOut[which(goOut$Direction == "1")[1:10],]
 write.csv(goOut, file = "tables/trap_GO_analysis_DE_FDR01.csv",row.names=FALSE)
 
 ## plots
-plotExample = goMF
-#### GET EXAMPLES FROM KRISTEN
-setsToPlot = c()
-tmp@compareClusterResult = tmp@compareClusterResult[50:60,]
-pdf("plots/geneset.pdf")
-plot(tmp)
+setsToPlot = c("GO:0003779", "GO:0005516","GO:0098794",
+	"GO:0030424", "GO:0000226")
+goExample = goOut[goOut$ID %in% setsToPlot,]
+goExample = goExample[1:5,]
+
+pdf("plots/go_figure4_barplot.pdf",h=3,w=7)
+par(mar=c(5,18,2,2),cex.axis=1.2,cex.lab=1.5)
+barplot(-log10(goExample$qvalue),width=0.5,
+	names = goExample$Description,horiz=TRUE,
+	xlab="-log10(FDR)",las=1)
 dev.off()
-
-
 ###########################
 ## replication with solo ##
 rse_gene_solo = rse_gene[,rse_gene$Kit == "SoLo"]

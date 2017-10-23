@@ -144,14 +144,15 @@ goOut = goOut[order(goOut$p.adjust),]
 write.csv(goOut, file = "tables/GO_bdnf_enrichment_DE_at_p005.csv",row.names=FALSE)
 
 ## example GO plots
-setsToPlot = c("GO:0003954", "GO:0042773", "GO:0019199",
-		"GO:0007270", "GO:0050808", "GO:0021761",
-		"GO:0044708", "GO:0072562", "GO:0002021",
-		"GO:0005179")
+goOut = read.csv("tables/GO_bdnf_enrichment_DE_at_p005.csv",as.is=TRUE)
+
+setsToPlot = c("GO:0098793", "GO:0060077", "GO:0005184",
+		"GO:0043679", "GO:0021761", "GO:0003954",
+		"GO:0042773", "GO:0019199", "GO:0007270", "GO:0050808")
 goUp = goOut[goOut$Direction == 1,]
-goUp = goUp[match(setsToPlot[1:5], goUp$ID),]	
+goUp = goUp[match(setsToPlot[6:10], goUp$ID),]	
 goDown = goOut[goOut$Direction == -1,]
-goDown = goDown[match(setsToPlot[6:10], goDown$ID),]		
+goDown = goDown[match(setsToPlot[1:5], goDown$ID),]		
 goExample = rbind(goUp, goDown)
 
 pdf("plots/go_figure5_barplot.pdf",h=4,w=8)

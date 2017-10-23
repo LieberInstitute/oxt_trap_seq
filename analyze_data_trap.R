@@ -127,10 +127,16 @@ goOut[which(goOut$Direction == "1")[1:10],]
 write.csv(goOut, file = "tables/trap_GO_analysis_DE_FDR01.csv",row.names=FALSE)
 
 ## plots
-setsToPlot = c("GO:0003779", "GO:0005516","GO:0098794",
+goOut = read.csv("tables/trap_GO_analysis_DE_FDR01.csv",as.is=TRUE)
+setsToPlot = c("GO:0043209", "GO:0044455", "GO:0042063",
+	"GO:0010001", "	GO:0048709",
+	"GO:0003779", "GO:0005516","GO:0098794",
 	"GO:0030424", "GO:0000226")
-goExample = goOut[goOut$ID %in% setsToPlot,]
-goExample = goExample[1:5,]
+goUp = goOut[goOut$Direction == 1,]
+goUp = goUp[match(setsToPlot[6:10], goUp$ID),]	
+goDown = goOut[goOut$Direction == -1,]
+goDown = goDown[match(setsToPlot[1:5], goDown$ID),]		
+goExample = rbind(goUp, goDown)
 
 pdf("plots/go_figure4_barplot.pdf",h=3,w=7)
 par(mar=c(5,18,2,2),cex.axis=1.2,cex.lab=1.5)

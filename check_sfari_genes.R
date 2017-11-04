@@ -12,7 +12,6 @@ library(WriteXLS)
 
 options(stringsAsFactors = FALSE)
 
-
 ##################################
 # get Ensembl mouse to human genes
 ensembl = useMart("ensembl",dataset = 'mmusculus_gene_ensembl')
@@ -28,57 +27,57 @@ load('TRAP_discovery_differential_expression.rda')
 outGene_ovation$hsapien_homolog = MMtoHG$hsapiens_homolog_ensembl_gene[
 	match(outGene_ovation$ensemblID,MMtoHG$ensembl_gene_id)]
 outGene_ovation$sigColor = NULL 
-
-# keep only expressed genes (DESeq2 will not adjust p-value if not expressed enough)
-#outGene_ovation = outGene_ovation[!is.na(outGene_ovation$padj),] #take only genes w/ human homolog
-outGene_ovation = outGene_ovation[grepl('ENSG',outGene_ovation$hsapien_homolog),] #take only genes w/ human homolog
-dim(outGene_ovation) #14803 background genes
-sigGene = outGene_ovation[which(outGene_ovation$adj.P.Val < 0.01),]
-dim(sigGene) #1545 DEGs with human homolog
+sigGene = outGene_ovation[outGene_ovation$adj.P.value < 0.01,]
 
 ########################
 # load SFARI human genes
-humanSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/gene-score.csv')
-humanSFARI = with(humanSFARI, humanSFARI[order(-grepl('S',Score),ss(Score,'S')),])
-humanSFARI = cbind(humanSFARI,outGene_ovation[lookfor(humanSFARI$Gene.Symbol,outGene_ovation$Symbol),])
+humanSFARI = read.csv('SFARI-Gene_genes_export03-11-2017.csv')
+humanSFARI = with(humanSFARI, humanSFARI[order(-grepl('S',gene.score),ss(gene.score,'S')),])
+humanSFARI = cbind(humanSFARI,outGene_ovation[lookfor(humanSFARI$gene.symbol,outGene_ovation$Symbol),])
 humanSFARI= humanSFARI[!is.na(humanSFARI$Symbol),]
 humanSFARI = humanSFARI[!duplicated(humanSFARI),]
-nrow(humanSFARI) # 558 expressed in mouse oxt dataset
+nrow(humanSFARI) # 842 expressed in mouse oxt dataset
 
 #########################
 # load SFARI mouse models
-mouseSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/sfari_genetic-animal-model-summary.csv')
-mouseSFARI = with(mouseSFARI,mouseSFARI[Model.Species=='Mus musculus',])
-mouseSFARI = cbind(mouseSFARI,outGene_ovation[lookfor(mouseSFARI$Model.Gene.symbol,outGene_ovation$Symbol),])
+mouseSFARI = read.csv('SFARI-Gene_animal-genes_export03-11-2017.csv')
+mouseSFARI = with(mouseSFARI,mouseSFARI[model.species=='Mus musculus',])
+mouseSFARI = cbind(mouseSFARI,outGene_ovation[lookfor(mouseSFARI$gene.symbol,outGene_ovation$Symbol),])
 mouseSFARI= mouseSFARI[!is.na(mouseSFARI$Symbol),]
 mouseSFARI = mouseSFARI[order(match(mouseSFARI$Symbol,humanSFARI$Symbol)),]
 mouseSFARI = mouseSFARI[!duplicated(mouseSFARI),]
-nrow(mouseSFARI) # 176 expressed in mouse oxt dataset
+nrow(mouseSFARI) # 224 expressed in mouse oxt dataset
 
 ###########################
 # list of DEG in mouse SFARI
-# 32 genes differentially expressed and in SFARI 
+# 24 genes in Oxt expressed and in SFARI 
 outGene_ovation$inMouseSFARI = outGene_ovation$Symbol %in% mouseSFARI$Symbol
-(t1 = with(outGene_ovation,table(inMouseSFARI,inDEG = adj.P.Val < 0.01)))
-fisher.test(t1) # OR = 1.9, p-value = 0.0019
+(t1 = with(outGene_ovation,table(inMouseSFARI,inDEG = adj.P.Val < 0.01 & logFC >0)))
+fisher.test(t1) # OR = 4.244335 p-value = 6.617e-10
 ind1 = with(sigGene, which(mouseSFARI$Symbol %in% Symbol))
 
 #######################################
 # list of DEG in scored human SFARI list
 # 131 human SFARI ASD-linked genes in our list of DEGs
 outGene_ovation$inHumanSFARI =  outGene_ovation$Symbol %in% humanSFARI$Symbol
-(t2 = with(outGene_ovation,table(inHumanSFARI,inDEG = adj.P.Val < 0.01)))
-fisher.test(t2) # OR = 2.24, p-value = 5.76e-12
+outGene_ovation_hs = outGene_ovation[grep("^ENSG", outGene_ovation$hsapien_homolog),]
+(t2 = with(outGene_ovation_hs,table(inHumanSFARI,inDEG = adj.P.Val < 0.01& logFC >0)))
+fisher.test(t2) # OR = 4.00, p-value <2.2e-16
 ind2 = with(sigGene, which(humanSFARI$Symbol %in% Symbol))
 
 ## venn diagrams
 library(limma)
-vennCount = vennCounts(data.frame(DEG = outGene_ovation$adj.P.Val < 0.01,
+vennCount = vennCounts(data.frame(OxtEnr = outGene_ovation$adj.P.Val < 0.01 & outGene_ovation$logFC>0,
 	`Hs SFARI` = outGene_ovation$inHumanSFARI,
 	`Mm SFARI`= outGene_ovation$inMouseSFARI))
+vennCounts_hs = with(outGene_ovation[grep("^ENSG", outGene_ovation$hsapien_homolog),],
+	vennCounts(data.frame(OxtEnr = adj.P.Val < 0.01 & logFC>0,
+	`Hs SFARI` = inHumanSFARI,
+	`Mm SFARI`= inMouseSFARI)))
 
 pdf("plots/vennDiagram_asd_oxt_enrichment.pdf")
-vennDiagram(vennCount,cex=1.4)
+vennDiagram(vennCount,cex=1.4,main="Mouse Expressed")
+vennDiagram(vennCounts_hs,cex=1.4, main = "Mouse Exprs (Hom)")
 dev.off()
 
 
@@ -96,43 +95,41 @@ bdnfStats = read.csv("tables/bdnf_genotype_effect_allGenes.csv",as.is=TRUE)
 bdnfStats$sigColor = NULL
 bdnfStats$hsapien_homolog = MMtoHG$hsapiens_homolog_ensembl_gene[
 	match(bdnfStats$ensemblID,MMtoHG$ensembl_gene_id)]
-bdnfStats = bdnfStats[grepl('ENSG',bdnfStats$hsapien_homolog),] #take only genes w/ human homolog
-dim(bdnfStats) #14567 background genes
 sigGene = bdnfStats[which(bdnfStats$adj.P.Val < 0.1),]
-dim(sigGene) # 71 DEGs with human homolog
-
 
 ########################
 # load SFARI human genes
-humanSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/gene-score.csv')
-humanSFARI = with(humanSFARI, humanSFARI[order(-grepl('S',Score),ss(Score,'S')),])
-humanSFARI = cbind(humanSFARI,bdnfStats[lookfor(humanSFARI$Gene.Symbol,bdnfStats$Symbol),])
+humanSFARI = read.csv('SFARI-Gene_genes_export03-11-2017.csv')
+humanSFARI = with(humanSFARI, humanSFARI[order(-grepl('S',gene.score),ss(gene.score,'S')),])
+humanSFARI = cbind(humanSFARI,bdnfStats[lookfor(humanSFARI$gene.symbol,bdnfStats$Symbol),])
 humanSFARI= humanSFARI[!is.na(humanSFARI$Symbol),]
 humanSFARI = humanSFARI[!duplicated(humanSFARI),]
-nrow(humanSFARI) # 556 expressed in mouse oxt dataset
+nrow(humanSFARI) # 843 expressed in mouse bdnf dataset
 
 #########################
 # load SFARI mouse models
-mouseSFARI = read.csv('/users/bphan/oxt/PTHS_mouse/oxt_mouse/tables/sfari_genetic-animal-model-summary.csv')
-mouseSFARI = with(mouseSFARI,mouseSFARI[Model.Species=='Mus musculus',])
-mouseSFARI = cbind(mouseSFARI,bdnfStats[lookfor(mouseSFARI$Model.Gene.symbol,bdnfStats$Symbol),])
+mouseSFARI = read.csv('SFARI-Gene_animal-genes_export03-11-2017.csv')
+mouseSFARI = with(mouseSFARI,mouseSFARI[model.species=='Mus musculus',])
+mouseSFARI = cbind(mouseSFARI,bdnfStats[lookfor(mouseSFARI$gene.symbol,bdnfStats$Symbol),])
 mouseSFARI= mouseSFARI[!is.na(mouseSFARI$Symbol),]
 mouseSFARI = mouseSFARI[order(match(mouseSFARI$Symbol,humanSFARI$Symbol)),]
 mouseSFARI = mouseSFARI[!duplicated(mouseSFARI),]
-nrow(mouseSFARI) # 179 expressed in mouse oxt dataset
+nrow(mouseSFARI) # 227 expressed in mouse oxt dataset
 
 ###########################
 # list of DEG in mouse SFARI
-# 2 genes differentially expressed and in SFARI 
+# 5 genes differentially expressed and in SFARI 
 (t1 = with(bdnfStats,table(inMouseSFARI = Symbol %in% mouseSFARI$Symbol,inDEG = adj.P.Val < 0.1)))
-fisher.test(t1) # OR = 6.23, p-value = 0.0018
+fisher.test(t1) # OR = 5.2, p-value = 0.0036
 ind1 = with(sigGene, which(mouseSFARI$Symbol %in% Symbol))
 
 #######################################
 # list of DEG in scored human SFARI list
 # 131 human SFARI ASD-linked genes in our list of DEGs
-(t2 = with(bdnfStats,table(inHumanSFARI = Symbol %in% humanSFARI$Symbol,inDEG = adj.P.Val < 0.1)))
-fisher.test(t2) # OR = 2.79, p-value = 0.018
+bdnfStats_hs = bdnfStats[grepl('ENSG',bdnfStats$hsapien_homolog),] #take only genes w/ human homolog
+
+(t2 = with(bdnfStats_hs,table(inHumanSFARI = Symbol %in% humanSFARI$Symbol,inDEG = adj.P.Val < 0.1)))
+fisher.test(t2) # OR = 2.05, p-value = 0.018
 ind2 = with(sigGene, which(humanSFARI$Symbol %in% Symbol))
 
 ####################

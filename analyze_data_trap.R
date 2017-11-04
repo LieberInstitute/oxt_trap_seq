@@ -17,6 +17,7 @@ load("rseObjs_oxtMerge_n18_4features.Rdata")
 ## filter lowly exprssed genes by RPKM in ovation
 geneIndex = rowMeans(getRPKM(rse_gene[,rse_gene$Kit=="Ovation"], "Length")) > 0.1
 rse_gene = rse_gene[geneIndex,]
+dim(rse_gene)
 
 ## pca
 pca = prcomp(t(log2(getRPKM(rse_gene, "Length")+1)))
@@ -183,9 +184,9 @@ replicationStats$sameDir = sign(replicationStats$logFC) ==
 	sign(sigGene_ovation$logFC)
 	
 ## check proportions
-prop.table(table(replicationStats$sameDir))
-prop.table(table(replicationStats$sameDir &
-	replicationStats$P.Value < 0.05))
+signif(prop.table(table(replicationStats$sameDir)),3)
+signif(prop.table(table(replicationStats$sameDir &
+	replicationStats$P.Value < 0.05)),3)
 	
 ## plots
 pdf("plots/suppFigure_ovation_versus_solo_replication.pdf",useDingbats=FALSE)
@@ -327,3 +328,13 @@ outStats$coord_mm10 = paste0(outStats$chr_mm10, ":",
 outStats = outStats[,c(2, 5, 8:13, 28, 1, 3:4, 6, 14:22, 27)]
 write.csv(outStats, file= "tables/TRAP_stats_allTests.csv", row.names=FALSE)
 
+### how many?
+otherCells = outStats[outStats$P.Value_CST < 0.01 & outStats$P.Value_Ntsr1 < 0.01,]
+split(otherCells$Symbol, sign(otherCells$logFC))
+
+otherCells = outStats[which(outStats$P.Value_CST < 0.01 & 
+	outStats$P.Value_Ntsr1 < 0.01 & 
+	sign(outStats$logFC) == sign(outStats$logFC_CST) & 
+	sign(outStats$logFC) == sign(outStats$logFC_Ntsr1)),]
+	
+split(otherCells$Symbol, sign(otherCells$logFC))

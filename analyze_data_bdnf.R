@@ -20,7 +20,6 @@ load("preprocessed_data/Bdnf_SoLo_Oxt/rse_jx_Bdnf_SoLo_Oxt_MiSeq_n6.Rdata")
 ## filter lowly exprssed genes by RPKM in ovation
 geneIndex = rowMeans(getRPKM(rse_gene, "Length")) > 0.1
 rse_gene = rse_gene[geneIndex,]
-dim(rse_gene)
 
 ## phenotype
 colData(rse_gene) = colData(rse_gene)

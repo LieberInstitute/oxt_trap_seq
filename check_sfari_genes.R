@@ -27,7 +27,7 @@ load('TRAP_discovery_differential_expression.rda')
 outGene_ovation$hsapien_homolog = MMtoHG$hsapiens_homolog_ensembl_gene[
 	match(outGene_ovation$ensemblID,MMtoHG$ensembl_gene_id)]
 outGene_ovation$sigColor = NULL 
-sigGene = outGene_ovation[outGene_ovation$adj.P.value < 0.01,]
+sigGene = outGene_ovation[outGene_ovation$adj.P.Val < 0.01,]
 
 ########################
 # load SFARI human genes
@@ -54,7 +54,8 @@ nrow(mouseSFARI) # 224 expressed in mouse oxt dataset
 outGene_ovation$inMouseSFARI = outGene_ovation$Symbol %in% mouseSFARI$Symbol
 (t1 = with(outGene_ovation,table(inMouseSFARI,inDEG = adj.P.Val < 0.01 & logFC >0)))
 fisher.test(t1) # OR = 4.244335 p-value = 6.617e-10
-ind1 = with(sigGene, which(mouseSFARI$Symbol %in% Symbol))
+ind1 = which(mouseSFARI$Symbol %in% mouseSFARI$Symbol & 
+	mouseSFARI$adj.P.Val < 0.01 & mouseSFARI$logFC >0)
 
 #######################################
 # list of DEG in scored human SFARI list
@@ -63,8 +64,9 @@ outGene_ovation$inHumanSFARI =  outGene_ovation$Symbol %in% humanSFARI$Symbol
 outGene_ovation_hs = outGene_ovation[grep("^ENSG", outGene_ovation$hsapien_homolog),]
 (t2 = with(outGene_ovation_hs,table(inHumanSFARI,inDEG = adj.P.Val < 0.01& logFC >0)))
 fisher.test(t2) # OR = 4.00, p-value <2.2e-16
-ind2 = with(sigGene, which(humanSFARI$Symbol %in% Symbol))
-
+ind2 = which(humanSFARI$Symbol %in% humanSFARI$Symbol & 
+	humanSFARI$adj.P.Val < 0.01 & humanSFARI$logFC >0)
+	
 ## venn diagrams
 library(limma)
 vennCount = vennCounts(data.frame(OxtEnr = outGene_ovation$adj.P.Val < 0.01 & outGene_ovation$logFC>0,

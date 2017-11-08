@@ -12,8 +12,8 @@ s2$bed_mm10 = NULL
 s3 = read.csv("tables/trap_GO_analysis_DE_FDR01.csv", as.is=TRUE)
 s3$Direction = ifelse(s3$Direction == 1, "OXT_enrich", "OXT_deplete")
 
-s4 = as.data.frame(read_excel("tables/Oxt_SFARI_asd_gene_list.xls", sheet=1))
-s5 = as.data.frame(read_excel("tables/Oxt_SFARI_asd_gene_list.xls", sheet=2))
+s4 = as.data.frame(read_excel("tables/Oxt_SFARI_asd_gene_list.xls", sheet=2))
+s5 = as.data.frame(read_excel("tables/Oxt_SFARI_asd_gene_list.xls", sheet=1))
 
 s6 = read.csv("tables/bdnf_genotype_effect_allGenes.csv", as.is=TRUE)
 s6$sigColor = NULL

@@ -18,5 +18,5 @@ Code for various analyses described in the paper can be found below:
 - [Comparing IP to Input samples](analyze_data_trap.R)
 - [Comparing Bdnf-e1 mutant IP to control IP](analyze_data_bdnf.R)
 
-The raw sequencing reads will be made available through [SRA](https://www.ncbi.nlm.nih.gov/sra) shortly
+The raw sequencing reads are available on [SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SRP157978)
 
